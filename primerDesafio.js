@@ -129,3 +129,4 @@ try {
 
 const allProducts = productManager.getProducts();
 console.log(allProducts);
+a
