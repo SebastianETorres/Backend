@@ -129,4 +129,5 @@ try {
 
 const allProducts = productManager.getProducts();
 console.log(allProducts);
-a
+
+module.exports = ProductManager;
