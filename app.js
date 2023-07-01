@@ -2,10 +2,18 @@ const express = require('express');
 const fs = require('fs');
 const ProductManager = require('./primerDesafio');
 
-const productManager = new ProductManager('C:/Users/usuario/Desktop/Backend/products.json');
+const productManager = new ProductManager('C:/Users/usuario/Desktop/Backend/node_modules/products.json');
 productManager.loadFromFile();
 
+
 const app = express();
+
+
+const productRouter = require('./productRouter');
+app.use('/api/products', productRouter);
+
+const cartRouter = require('./cartRouter');
+app.use('/api/carts', cartRouter);
 
 app.get('/products', async (req, res) => {
   try {

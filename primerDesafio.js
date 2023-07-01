@@ -93,7 +93,7 @@ class ProductManager {
   }
 }
 
-const productManager = new ProductManager('C:/Users/usuario/Desktop/Backend/products.json');
+const productManager = new ProductManager('C:/Users/usuario/Desktop/Backend/node_modules/products.json');
 productManager.loadFromFile();
 
 try {
