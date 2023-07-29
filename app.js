@@ -1,81 +1,78 @@
 const express = require('express');
-const fs = require('fs');
-const handlebars = require('handlebars');
 const exphbs = require('express-handlebars');
 const http = require('http');
 const socketIO = require('socket.io');
-const ProductManager = require('./primerDesafio');
+const mongoose = require('mongoose');
+const productRouter = require('./productRouter');
+const cartRouter = require('./cartRouter');
 
-const productManager = new ProductManager('C:/Users/usuario/Desktop/Backend/node_modules/products.json');
-productManager.loadFromFile();
+
+const mongoDBURI = 'mongodb://torres:123@ecommerce-shard-00-00.bfjpgrr.mongodb.net:27017,ecommerce-shard-00-01.bfjpgrr.mongodb.net:27017,ecommerce-shard-00-02.bfjpgrr.mongodb.net:27017/?ssl=true&replicaSet=atlas-3o2mgg-shard-0&authSource=admin&retryWrites=true&w=majority';
+mongoose.connect(mongoDBURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useFindAndModify: false,
+  useCreateIndex: true,
+}).then(() => {
+  console.log('Connected to MongoDB Atlas');
+}).catch((err) => {
+  console.error('Error connecting to MongoDB:', err);
+});
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-// Configurar el motor de plantillas Handlebars
 app.engine('handlebars', exphbs());
 app.set('view engine', 'handlebars');
 
-const productRouter = require('./productRouter');
+// Routes
 app.use('/api/products', productRouter);
-
-const cartRouter = require('./cartRouter');
 app.use('/api/carts', cartRouter);
 
-app.get('/products', async (req, res) => {
-  try {
-    const { limit } = req.query;
-    const products = limit ? productManager.getProducts().slice(0, limit) : productManager.getProducts();
-    res.json(products);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+app.get('/products', (req, res) => {
+  res.json(products);
+});
+
+app.get('/products/:pid', (req, res) => {
+  const { pid } = req.params;
+  const product = products.find((product) => product.id === Number(pid));
+
+  if (!product) {
+    res.status(404).json({ error: 'Product not found' });
+  } else {
+    res.json(product);
   }
 });
 
-app.get('/products/:pid', async (req, res) => {
-  try {
-    const { pid } = req.params;
-    const product = productManager.getProductById(Number(pid));
-
-    if (!product) {
-      res.status(404).json({ error: 'Product not found' });
-    } else {
-      res.json(product);
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
+app.get('/home', (req, res) => {
+  res.render('home', { products });
 });
 
-app.get('/home', async (req, res) => {
-  try {
-    const products = productManager.getProducts();
-    res.render('home', { products });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
+app.get('/realtimeproducts', (req, res) => {
+  res.render('realTimeProducts', { products });
 });
 
-app.get('/realtimeproducts', async (req, res) => {
-  try {
-    const products = productManager.getProducts();
-    res.render('realTimeProducts', { products });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
+app.get('/chat', (req, res) => {
+  res.render('chat');
 });
 
 io.on('connection', (socket) => {
   console.log('A user connected');
 
+  socket.on('sendMessage', (messageData) => {
+    try {
+      const message = new Message(messageData);
+      message.save();
+      io.emit('messageReceived', messageData);
+    } catch (error) {
+      console.error(error.message);
+    }
+  });
+
   socket.on('createProduct', (productData) => {
     try {
-      const newProduct = productManager.addProduct(productData);
+      const newProduct = addProduct(productData);
       io.emit('productCreated', newProduct);
     } catch (error) {
       console.error(error.message);
@@ -84,7 +81,7 @@ io.on('connection', (socket) => {
 
   socket.on('deleteProduct', (productId) => {
     try {
-      productManager.deleteProduct(productId);
+      deleteProduct(productId);
       io.emit('productDeleted', productId);
     } catch (error) {
       console.error(error.message);
