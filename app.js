@@ -1,34 +1,34 @@
 const express = require('express');
-const exphbs = require('express-handlebars');
 const http = require('http');
 const socketIO = require('socket.io');
 const mongoose = require('mongoose');
-const productRouter = require('./productRouter');
-const cartRouter = require('./cartRouter');
+const productRouter = require('./dao/models/productRouter');
+const cartRouter = require('./dao/models/cartRouter');
+
+
 
 
 const mongoDBURI = 'mongodb://torres:123@ecommerce-shard-00-00.bfjpgrr.mongodb.net:27017,ecommerce-shard-00-01.bfjpgrr.mongodb.net:27017,ecommerce-shard-00-02.bfjpgrr.mongodb.net:27017/?ssl=true&replicaSet=atlas-3o2mgg-shard-0&authSource=admin&retryWrites=true&w=majority';
 mongoose.connect(mongoDBURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  useFindAndModify: false,
-  useCreateIndex: true,
 }).then(() => {
   console.log('Connected to MongoDB Atlas');
 }).catch((err) => {
   console.error('Error connecting to MongoDB:', err);
 });
 
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-app.engine('handlebars', exphbs());
-app.set('view engine', 'handlebars');
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-// Routes
 app.use('/api/products', productRouter);
 app.use('/api/carts', cartRouter);
+
 
 app.get('/products', (req, res) => {
   res.json(products);
@@ -45,8 +45,14 @@ app.get('/products/:pid', (req, res) => {
   }
 });
 
-app.get('/home', (req, res) => {
-  res.render('home', { products });
+app.get('/home', async (req, res) => {
+  try {
+    const products = await dao.getProducts();
+    res.render('home', { products });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.get('/realtimeproducts', (req, res) => {

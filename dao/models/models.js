@@ -37,4 +37,4 @@ const productSchema = new mongoose.Schema({
 
 const Product = mongoose.model('Product', productSchema);
 
-module.exports = { Cart, Message, Product };
+module.exports = {Cart, Message, Product};

@@ -1,12 +1,43 @@
 const express = require('express');
 const router = express.Router();
-const dao = require('./dao');
+const dao = require('../dao'); 
+const { Cart, Message, Product } = require('../models/models'); 
+const productManager = require('./primerDesafio');
+
 
 router.get('/', async (req, res) => {
   try {
-    const { limit } = req.query;
-    const products = await dao.getProducts(limit);
-    res.json(products);
+    const { limit, page, sort, query } = req.query;
+    const productsPerPage = limit ? parseInt(limit) : 10;
+    const currentPage = page ? parseInt(page) : 1;
+    const skip = (currentPage - 1) * productsPerPage;
+    
+    const filter = query ? { category: query } : {};
+    const sortOptions = sort === 'asc' ? { price: 1 } : sort === 'desc' ? { price: -1 } : {};
+    
+    const totalCount = await Product.countDocuments(filter);
+    const totalPages = Math.ceil(totalCount / productsPerPage);
+
+    const products = await Product.find(filter)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(productsPerPage);
+
+    const prevPage = currentPage > 1 ? currentPage - 1 : null;
+    const nextPage = currentPage < totalPages ? currentPage + 1 : null;
+
+    res.json({
+      status: 'success',
+      payload: products,
+      totalPages,
+      prevPage,
+      nextPage,
+      page: currentPage,
+      hasPrevPage: currentPage > 1,
+      hasNextPage: currentPage < totalPages,
+      prevLink: prevPage ? `/api/products?limit=${productsPerPage}&page=${prevPage}&sort=${sort}&query=${query}` : null,
+      nextLink: nextPage ? `/api/products?limit=${productsPerPage}&page=${nextPage}&sort=${sort}&query=${query}` : null
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });

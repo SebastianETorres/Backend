@@ -1,6 +1,5 @@
-const Product = require('./models/products');
-const Cart = require('./models/carts');
-const Message = require('./models/messages');
+const { Cart, Message, Product } = require('./models/models');
+
 
 class DAO {
   async createProduct(productData) {
